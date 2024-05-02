@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "^1.20.6"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+
+      # cache go modules
+      - uses: actions/cache@v4
+        with:
+          # In order:
+          # * Module download cache
+          # * Build cache (Linux)
+          # * Build cache (Mac)
+          # * Build cache (Windows)
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+            %LocalAppData%\go-build
+            bin
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run linting
+        if: matrix.os == 'ubuntu-latest'
+        run: make lint
+
+      - name: Run unittest
+        if: matrix.os == 'ubuntu-latest'
+        run: make test-coverage
+
+      - name: Build package
+        run: make build
+
+      - name: Execute build
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        run: ./out/bin/gt --help
+
+      - name: Execute build
+        if: matrix.os == 'windows-latest'
+        run: ./out/bin/gt.exe --help
+
+      - name: Create a test project & test it
+        run: |
+          make testing-project-default
+          make -C testing-project ci
+          make -C testing-project all
+
+      - name: Test generate projects
+        run: make testing-project-ci

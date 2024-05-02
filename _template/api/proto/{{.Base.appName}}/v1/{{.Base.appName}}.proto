@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package {{.Base.appName | replace "-" "_" }}.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+{{- if .Extensions.grpc.grpcGateway }}
+// weak, otherwise gnostic imports broken imports for gen-go
+// weak import: proto definition only adds options, no additional messages.
+// buf:lint:ignore IMPORT_NO_WEAK
+import weak "gnostic/openapi/v3/annotations.proto"; // Will not import _ "" in the gen-go files
+{{- end }}
+
+// Defines the import path that should be used to import the generated package,
+// and the package name.
+option go_package = "{{.Base.moduleName | replace `.git` ``}}/internal/pkg/pb;pb";
+
+{{- if .Extensions.grpc.grpcGateway }}
+// These annotations are used when generating the OpenAPI file.
+option (gnostic.openapi.v3.document) = {
+  info: {
+    title: "{{.Base.appName}}-api";
+    version: "1.0";
+    description: "{{.Base.projectDescription}}";
+  }
+  components: {
+    security_schemes: {
+      additional_properties: [
+        {
+          name: "BasicAuth";
+          value: {
+            security_scheme: {
+              type: "http";
+              scheme: "basic";
+            }
+          }
+        }
+      ]
+    }
+  }
+  servers : {
+    url: "http://localhost:8080";
+    description: "Host Server"
+  }
+};
+{{- end }}
+
+service {{ .Base.appName | title | replace "-" "" }}Service {
+  {{- if .Extensions.grpc.grpcGateway }}
+  rpc GetExample(GetExampleRequest) returns (GetExampleResponse) {
+    option (google.api.http) = {
+      get: "/v1/example"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      summary: "Get example response"
+      description: "Returns an empty example response"
+      tags: "example"
+    };
+  }
+  {{else}}
+  rpc GetExample(GetExampleRequest) returns (GetExampleResponse) {}
+  {{- end }}
+}
+
+message GetExampleRequest {}
+
+message GetExampleResponse {}

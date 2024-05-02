@@ -1,0 +1,19 @@
+# config options found here: https://github.com/Ezard/semantic-prs
+
+# Always validate the PR title, and ignore the commits
+titleOnly: true
+
+scopes:
+  - template
+  - engine
+  - ci
+  - deps
+
+types:
+  - feat
+  - fix
+  - docs
+  - refactor
+  - test
+  - chore
+  - revert

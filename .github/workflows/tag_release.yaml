@@ -1,0 +1,35 @@
+name: tag-release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "config/version.txt"
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # using a PAT is necessary to trigger the release workflow
+        # see https://github.com/orgs/community/discussions/25702
+        with:
+          token: ${{ secrets.PAT }}
+      - name: Get version from file
+        id: tag
+        run: |
+          export VERSION="$(cat config/version.txt)"
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+      - name: Check tag is new
+        run: |
+          git fetch origin --tags
+          if git tag |grep -qE ^"${{ steps.tag.outputs.tag }}"$; then
+            echo "tag already exists"
+            exit 1
+          fi
+      - name: Create and push tag
+        run: |
+          git tag ${{ steps.tag.outputs.tag }}
+          git push --tags
